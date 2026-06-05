@@ -14,6 +14,7 @@
       - { name: esx-02.vclass.local, ip_iscsi_1: 10.10.11.12, ip_iscsi_2: 10.10.11.22, ip_vmotion: 10.10.12.12 }
       - { name: esx-03.vclass.local, ip_iscsi_1: 10.10.11.13, ip_iscsi_2: 10.10.11.23, ip_vmotion: 10.10.12.13 }
       # - { name: esx-04.vclass.local, ip_iscsi_1: 10.10.11.14, ip_iscsi_2: 10.10.11.24, ip_vmotion: 10.10.12.14 }
+    iscsi_target_ip: "10.10.10.1"  
     
   vars_prompt:
     - name: vcenter_password
@@ -58,7 +59,7 @@
         esxi_username: 'root'
         esxi_password: "{{ host_password }}"
         state: present
-        loop: {{ cluster_hosts }}
+        loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
     - name: 04.Create dvSwitch
@@ -86,7 +87,7 @@
           - vmnic1
           - vmnic3
         state: present
-      loop: {{ cluster_hosts }}
+      loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
 
@@ -102,6 +103,7 @@
         port_binding: static
         teaming_policy:
           load_balance_policy: failover_explicit
+          rolling_order: "true"
           active_uplinks: "Uplink 1"
       delegate_to: localhost
 
@@ -117,6 +119,7 @@
         port_binding: static
         teaming_policy:
           load_balance_policy: failover_explicit
+          rolling_order: "true"
           active_uplinks: "Uplink 2"
       delegate_to: localhost
 
@@ -134,7 +137,7 @@
           ip_address: "{{ item.ip_iscsi_1 }}"
           subnet_mask: 255.255.255.0
         state: present
-        loop: {{ cluster_hosts }}
+      loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
 
@@ -151,7 +154,7 @@
           ip_address: "{{ item.ip_iscsi_2 }}"
           subnet_mask: 255.255.255.0
         state: present
-        loop: {{ cluster_hosts }}
+      loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
     - name: 10.Enable iSCSI 
@@ -161,121 +164,43 @@
         password: "{{ vcenter_password }}"
         esxi_hostname: "{{ item.name }}"
         state: enabled
-        loop: {{ cluster_hosts }}
+      loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
-    - name: Add a dynamic target to iSCSI config of ESXi
+    - name: 11.iSCSI (vmhba64) Port binding
       community.vmware.vmware_host_iscsi:
         hostname: "{{ vcenter_hostname }}"
         username: "{{ vcenter_username }}"
         password: "{{ vcenter_password }}"
         esxi_hostname: "{{ item.name }}"
         iscsi_config:
-          vmhba_name: vmhba65
-          port_bind:
-            - vmk2
-            - vmk3
-          send_target:
-          address: "{{ send_target_address }}"
-        state: present
-        loop: {{ cluster_hosts }}
-      delegate_to: localhost
-
-    # - name: 04.Create Standard Switch for iSCSI
-    #   community.vmware.vmware_vswitch:
-    #     hostname: '{{ item }}'
-    #     username: '{{ esxi_username }}'
-    #     password: '{{ esxi_password }}'
-    #     validate_certs: no
-    #     switch: vSwitch1
-    #     nics: vmnic1
-    #     state: present
-    #   loop:
-    #     - "sa-esxi-01.vclass.local"
-    #     - "sa-esxi-02.vclass.local"
-    #     - "sa-esxi-03.vclass.local"
-    #   delegate_to: localhost
-
-    # - name: 05.Waiting 10 seconds for completing switch
-    #   wait_for:
-    #     timeout: 10
-    #   delegate_to: localhost
-
-    # - name: 06.Adding iSCSI Portgroup
-    #   community.vmware.vmware_portgroup:
-    #     hostname: "{{ vcenter_hostname }}"
-    #     username: "{{ vcenter_username }}"
-    #     password: "{{ vcenter_password }}"
-    #     validate_certs: no
-    #     cluster_name: "{{ cluster_name }}"
-    #     switch: vSwitch1
-    #     portgroup: iSCSI
-    #   delegate_to: localhost
-
-
-    - name: 07.Add iSCSI vmkernel port
-      community.vmware.vmware_vmkernel:
-        hostname: '{{ vcenter_hostname }}'
-        username: '{{ vcenter_username }}'
-        password: '{{ vcenter_password }}'
-        validate_certs: no
-        esxi_hostname: '{{ item.esxi_host }}'
-        vswitch_name: vSwitch1
-        portgroup_name: iSCSI
-        network:
-          type: 'static'
-          ip_address: '{{ item.iscsi_ip }}'
-          subnet_mask: 255.255.255.0
-          default_gateway: 10.10.11.1
-        state: present
-      with_items:
-      - { esxi_host: sa-esxi-01.vclass.local, iscsi_ip: 10.10.11.11 }
-      - { esxi_host: sa-esxi-02.vclass.local, iscsi_ip: 10.10.11.12 }
-      - { esxi_host: sa-esxi-03.vclass.local, iscsi_ip: 10.10.11.13 }
-      delegate_to: localhost
-      
-
-    - name: 08.Create Software iSCSI Adapter
-      community.vmware.vmware_host_iscsi:
-        hostname: "{{ vcenter_hostname }}"
-        username: "{{ vcenter_username }}"
-        password: "{{ vcenter_password }}"
-        validate_certs: no
-        esxi_hostname: "{{ item }}"
-        state: enabled
-      loop:
-        - "sa-esxi-01.vclass.local"
-        - "sa-esxi-02.vclass.local"
-        - "sa-esxi-03.vclass.local"
-      delegate_to: localhost
-
-
-    - name: 09. Set Port Binding and Target
-      community.vmware.vmware_host_iscsi:
-        hostname: "{{ vcenter_hostname }}"
-        username: "{{ vcenter_username }}"
-        password: "{{ vcenter_password }}"
-        validate_certs: no
-        esxi_hostname: "{{ item }}"
-        iscsi_config:
-          vmhba_name: vmhba65
+          vmhba_name: vmhba64
           port_bind:
             - vmk1
-          send_target:
-            address: 10.10.11.10
-      loop:
-        - "sa-esxi-01.vclass.local"
-        - "sa-esxi-02.vclass.local"
-        - "sa-esxi-03.vclass.local"
+            - vmk2
+        state: present
+      loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
+    - name: 12.Add a dynamic target to iSCSI config of ESXi
+      community.vmware.vmware_host_iscsi:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        iscsi_config:
+          vmhba_name: vmhba65
+          send_target:
+          address: "{{ iscsi_target_ip }}"
+        state: present
+      loop: "{{ cluster_hosts }}"
+      delegate_to: localhost
 
-    - name: 10.Recan HBA for cluster
+    - name: 13.Recan HBA for cluster
       community.vmware.vmware_host_scanhba:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        validate_certs: no
         cluster_name: '{{ cluster_name }}'
         rescan_hba: true
       delegate_to: localhost
