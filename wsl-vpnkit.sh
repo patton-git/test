@@ -31,7 +31,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable wsl-vpnkit.service
 sudo systemctl start wsl-vpnkit.service
 
-
+----------------------------------------------------------------
 
 
 sudo nano /opt/wsl-vpnkit/wsl-interop-helper.sh
@@ -67,6 +67,29 @@ KillMode=mixed
 WantedBy=multi-user.target
 
 
+---------------------------------------------------------------
+
+
+
+sudo rm -rf /opt/wsl-vpnkit
+sudo rm -f /app
+
+
+sudo mkdir -p /opt/wsl-vpnkit
+
+wget https://github.com/sakai135/wsl-vpnkit/releases/download/v0.4.1/wsl-vpnkit.tar.gz -O /tmp/wsl-vpnkit.tar.gz
+
+sudo tar -xz -f /tmp/wsl-vpnkit.tar.gz -C /opt/wsl-vpnkit --strip-components=1 app/
+
+
+sudo ln -s /opt/wsl-vpnkit /app
+
+
+ls -l /app
+
+
+sudo systemctl restart wsl-vpnkit
+sudo systemctl status wsl-vpnkit
 
 
 
