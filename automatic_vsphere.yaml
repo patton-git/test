@@ -86,7 +86,7 @@
           - vmnic1
           - vmnic3
         state: present
-        loop: {{ cluster_hosts }}
+      loop: {{ cluster_hosts }}
       delegate_to: localhost
 
 
@@ -99,6 +99,7 @@
         switch_name: dvSwitch
         vlan_id: 11
         state: present
+        port_binding: static
         teaming_policy:
           load_balance_policy: failover_explicit
           active_uplinks: "Uplink 1"
@@ -113,6 +114,7 @@
         switch_name: dvSwitch
         vlan_id: 11
         state: present
+        port_binding: static
         teaming_policy:
           load_balance_policy: failover_explicit
           active_uplinks: "Uplink 2"
