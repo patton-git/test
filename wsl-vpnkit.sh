@@ -30,3 +30,45 @@ WantedBy=multi-user.target
 sudo systemctl daemon-reload
 sudo systemctl enable wsl-vpnkit.service
 sudo systemctl start wsl-vpnkit.service
+
+
+
+
+sudo nano /opt/wsl-vpnkit/wsl-interop-helper.sh
+
+
+#!/bin/bash
+INTEROP_SOCKET=$(ls -t /run/WSL/*_interop 2>/dev/null | head -n 1)
+if [ -n "$INTEROP_SOCKET" ]; then
+    export WSL_INTEROP=$INTEROP_SOCKET
+fi
+exec /opt/wsl-vpnkit/wsl-vpnkit
+
+
+
+sudo chmod +x /opt/wsl-vpnkit/wsl-interop-helper.sh
+
+
+
+sudo nano /etc/systemd/system/wsl-vpnkit.service
+[Unit]
+Description=WSL VPNKit Service
+After=network.target
+
+[Service]
+Type=simple
+# 기존 /opt/wsl-vpnkit/wsl-vpnkit 에서 아래 경로로 변경
+ExecStart=/opt/wsl-vpnkit/wsl-interop-helper.sh
+Restart=always
+RestartSec=5
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+
