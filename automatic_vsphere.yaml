@@ -66,7 +66,7 @@
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        datacenter: '{{ datacenter }}'
+        datacenter: '{{ datacenter_name }}'
         switch: dvSwitch
         version: 9.0.0
         mtu: 9000
