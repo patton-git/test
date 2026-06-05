@@ -242,7 +242,7 @@
         state: present
       delegate_to: localhost
 
-    - name: 18.Create Subscribed Content Library
+    - name: 18.Create Local Content Library
       community.vmware.vmware_content_library_manager:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
@@ -252,15 +252,18 @@
         datastore_name: iSCSI-0
         state: present
       delegate_to: localhost
+      register: devops_library  # 1) 리턴되는 결과를 변수에 등록
 
     - name: 19.Upload an OVF From The Ansible Host
       vmware.vmware.import_content_library_ovf:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        library_id: "{{ my_library.id }}"
-        src: /mnt/c/Users/Administrator/Download/my_ovf
-        dest: my_ovf_file
+        library_id: "{{ devops_library.content_library_id }}"  # 2) 추출된 ID 바인딩
+        src: /mnt/c/Users/Administrator/Downloads/my_ovf
+        dest: photon-5.0
+      delegate_to: localhost
+
 
     - name: 19.Create vlan portgroup - vMotion - 12
       community.vmware.vmware_dvs_portgroup:
