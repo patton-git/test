@@ -75,7 +75,6 @@
         state: present
       delegate_to: localhost
 
-
     - name: 05.Add Hosts to dVS
       community.vmware.vmware_dvs_host:
         hostname: '{{ vcenter_hostname }}'
@@ -89,7 +88,6 @@
         state: present
       loop: "{{ cluster_hosts }}"
       delegate_to: localhost
-
 
     - name: 06.Create iSCSI-P1 Portgroup
       community.vmware.vmware_dvs_portgroup:
@@ -123,7 +121,6 @@
           active_uplinks: "Uplink 2"
       delegate_to: localhost
 
-
     - name: 08.Add 1st iSCSI vmkernel port
       community.vmware.vmware_vmkernel:
         hostname: '{{ vcenter_hostname }}'
@@ -139,7 +136,6 @@
         state: present
       loop: "{{ cluster_hosts }}"
       delegate_to: localhost
-
 
     - name: 09.Add 2nd iSCSI vmkernel port
       community.vmware.vmware_vmkernel:
@@ -205,13 +201,10 @@
         rescan_hba: true
       delegate_to: localhost
 
-
     - name: 14.Wait for complete rescan HBA
       wait_for:
         timeout: 10
       delegate_to: localhost
-
-
 
     - name: 15.Disable ESXi Maintenance Mode On A Host
       vmware.vmware.esxi_maintenance_mode:
@@ -222,7 +215,6 @@
         enable_maintenance_mode: false
       loop: "{{ cluster_hosts }}"
       delegate_to: localhost
-
 
     - name: 16.Create iSCSI-0 Datastore
       community.vmware.vmware_host_datastore:
@@ -250,7 +242,6 @@
         state: present
       delegate_to: localhost
 
-
     - name: 18.Create Subscribed Content Library
       community.vmware.vmware_content_library_manager:
         hostname: '{{ vcenter_hostname }}'
@@ -259,11 +250,17 @@
         library_name: DevOps
         library_type: local
         datastore_name: iSCSI-0
-        update_on_demand: true
         state: present
       delegate_to: localhost
 
-
+    - name: 19.Upload an OVF From The Ansible Host
+      vmware.vmware.import_content_library_ovf:
+        hostname: '{{ vcenter_hostname }}'
+        username: '{{ vcenter_username }}'
+        password: '{{ vcenter_password }}'
+        library_id: "{{ my_library.id }}"
+        src: /mnt/c/Users/Administrator/Download/my_ovf
+        dest: my_ovf_file
 
     - name: 19.Create vlan portgroup - vMotion - 12
       community.vmware.vmware_dvs_portgroup:
