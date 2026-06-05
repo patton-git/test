@@ -191,7 +191,7 @@
         iscsi_config:
           vmhba_name: vmhba65
           send_target:
-          address: "{{ iscsi_target_ip }}"
+            address: "{{ iscsi_target_ip }}"
         state: present
       loop: "{{ cluster_hosts }}"
       delegate_to: localhost
