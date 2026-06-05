@@ -15,7 +15,20 @@
       - { name: esx-03.vclass.local, ip_iscsi_1: 10.10.11.13, ip_iscsi_2: 10.10.11.23, ip_vmotion: 10.10.12.13 }
       - { name: esx-04.vclass.local, ip_iscsi_1: 10.10.11.14, ip_iscsi_2: 10.10.11.24, ip_vmotion: 10.10.12.14 }
     iscsi_target_ip: "10.10.11.1"  
-    
+    project_pgs:
+      - { name: DPG-vMotion, vlan: 12 }
+      - { name: DPG-Prod,    vlan: 13 }
+      - { name: DPG-Test,    vlan: 14 }
+      - { name: DPG-Dev,     vlan: 15 }
+    project_vms:
+      - { name: prod-01, pg: DPG-Prod, ip: 10.10.13.11, gw: 10.10.13.1 }
+      - { name: prod-02, pg: DPG-Prod, ip: 10.10.13.12, gw: 10.10.13.1 }
+      - { name: test-01, pg: DPG-Test, ip: 10.10.14.11, gw: 10.10.14.1 }
+      - { name: test-02, pg: DPG-Test, ip: 10.10.14.12, gw: 10.10.14.1 }
+      - { name: dev-01,  pg: DPG-Dev,  ip: 10.10.15.11, gw: 10.10.15.1 }
+      - { name: dev-02,  pg: DPG-Dev,  ip: 10.10.15.12, gw: 10.10.15.1 }
+      
+          
   vars_prompt:
     - name: vcenter_password
       prompt: "vCenter 비밀번호를 입력하세요 (administrator@vsphere.local)"
@@ -252,70 +265,99 @@
         datastore_name: iSCSI-0
         state: present
       delegate_to: localhost
-      register: devops_library  # 1) 리턴되는 결과를 변수에 등록
 
     - name: 19.Upload an OVF From The Ansible Host
       vmware.vmware.import_content_library_ovf:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        library_id: "{{ devops_library.content_library_id }}"  # 2) 추출된 ID 바인딩
-        src: /mnt/c/Users/Administrator/Downloads/my_ovf
+        library_name: "DevOps"
+        src: /mnt/c/Users/Administrator/Downloads/photon-hw15-5.0-dde71ec57.x86_64.ova
         dest: photon-5.0
       delegate_to: localhost
 
-
-    - name: 19.Create vlan portgroup - vMotion - 12
+    - name: 20.Deploy VM From Contents Library
+      vmware.vmware.deploy_content_library_ovf:
+        hostname: '{{ vcenter_hostname }}'
+        username: '{{ vcenter_username }}'
+        password: '{{ vcenter_password }}'
+        library_item_name: photon-5.0
+        library_name: DevOps
+        vm_name: Temp_Container_Host
+        datacenter: "{{ datacenter_name }}" 
+        datastore: iSCSI-0
+    
+    - name: 21.Create project portgroup
       community.vmware.vmware_dvs_portgroup:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        validate_certs: no        
-        portgroup_name: DPG-vMotion
+        portgroup_name: "{{ item.name }}"
         switch_name: DSwitch
-        vlan_id: 12
+        vlan_id: "{{ item.vlan }""
         port_binding: static
         state: present
+      loop: {{ project_pgs }}  
       delegate_to: localhost
 
-    - name: 19.Add vMotion vmkernel port
+    - name: 22.Add vMotion vmkernel port
       community.vmware.vmware_vmkernel:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        validate_certs: no
-        esxi_hostname: '{{ item.esxi_host }}'
+        esxi_hostname: '{{ item.name }}'
         dvswitch_name: DSwitch
         portgroup_name: DPG-vMotion
         network:
           type: 'static'
-          ip_address: '{{ item.vmotionip }}'
+          ip_address: '{{ item.ip_vmotion }}'
           subnet_mask: 255.255.255.0
           tcpip_stack: vmotion
         state: present
         enable_vmotion: yes
-      with_items:
-      - { esxi_host: sa-esxi-01.vclass.local, vmotionip: 10.10.12.11 }
-      - { esxi_host: sa-esxi-02.vclass.local, vmotionip: 10.10.12.12 }
-      - { esxi_host: sa-esxi-03.vclass.local, vmotionip: 10.10.12.13 }
+      loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
-
-    - name: 20.vmoption tcp/ip stack gateway
+    - name: 23.vmoption tcp/ip stack gateway
       community.vmware.vmware_host_tcpip_stacks:
-        hostname: '{{ item }}'
-        username: '{{ esxi_username }}'
-        password: '{{ esxi_password }}'
+        hostname: "{{ item.name }}"
+        username: "root"
+        password: "{{ host_password }}"
         validate_certs: no
-        esxi_hostname: '{{ item }}'        
+        esxi_hostname: "{{ item.name }}"
         vmotion:
           gateway: 10.10.12.1
-      loop:
-        - "sa-esxi-01.vclass.local"
-        - "sa-esxi-02.vclass.local"
-        - "sa-esxi-03.vclass.local"
+      loop: "{{ cluster_hosts }}"
       delegate_to: localhost    
 
+    - name: 24.Enable DRS
+      community.vmware.vmware_cluster_drs:
+        hostname: '{{ vcenter_hostname }}'
+        username: '{{ vcenter_username }}'
+        password: '{{ vcenter_password }}'
+        validate_certs: no        
+        datacenter_name: '{{ datacenter_name }}'
+        cluster_name: '{{ cluster_name }}'
+        enable: true
+      delegate_to: localhost    
+
+
+
+    - name: 05. Deploy Project VMs
+      community.vmware.vmware_guest:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        name: "{{ item.name }}"
+        datacenter: "{{ datacenter_name }}"
+        esxi_hostname: "{{ item[0].host }}"
+        datastore: "{{ item[0].datastore }}"
+        template: "{{ item[0].host }}{{ item[1] }}"
+        linked_clone: True
+        snapshot_src: "linked"
+      loop: "{{ project_vms }}"
+      delegate_to: localhost
 
     - name: 20.Create vlan portgroup - Production - 13
       community.vmware.vmware_dvs_portgroup:
@@ -345,13 +387,3 @@
           failover_level: 1
       delegate_to: localhost    
       
-    - name: 22.Enable DRS
-      community.vmware.vmware_cluster_drs:
-        hostname: '{{ vcenter_hostname }}'
-        username: '{{ vcenter_username }}'
-        password: '{{ vcenter_password }}'
-        validate_certs: no        
-        datacenter_name: '{{ datacenter_name }}'
-        cluster_name: '{{ cluster_name }}'
-        enable: true
-      delegate_to: localhost    
