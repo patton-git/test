@@ -19,6 +19,10 @@
     - name: vcenter_password
       prompt: "vCenter 비밀번호를 입력하세요 (administrator@vsphere.local)"
       private: true  # 키보드 입력 시 화면에 문자가 표시되지 않음
+    - name: host_password
+      prompt: "ESX host의 Root 비밀번호를 입력하세요"
+      private: true  # 키보드 입력 시 화면에 문자가 표시되지 않음
+
 
   tasks: 
 
@@ -52,7 +56,7 @@
         cluster_name: '{{ cluster_name }}'
         esxi_hostname: '{{ item.name }}'
         esxi_username: 'root'
-        esxi_password: 'VMware1!'
+        esxi_password: "{{ host_password }}"
         state: present
         loop: {{ cluster_hosts }}
       delegate_to: localhost
