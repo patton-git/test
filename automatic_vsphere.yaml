@@ -397,3 +397,21 @@
   #     state: "poweredon"
   #   loop: "{{ LAB_SID | product(LAB_VMs) | list }}"
   #   delegate_to: localhost      
+
+  - name: Create DRS Anti-Affinity Rule for VM-VM
+  community.vmware.vmware_vm_vm_drs_rule:
+    hostname: "{{ esxi_server }}"
+    username: "{{ esxi_username }}"
+    password: "{{ esxi_password }}"
+    datacenter: "{{ datacenter }}"
+    cluster_name: "{{ cluster_name }}"
+    enabled: true
+    vms:
+        - vm1
+        - vm2
+    drs_rule_name: vm1-vm2-affinity-rule-001
+    mandatory: true
+    affinity_rule: false
+  delegate_to: localhost
+
+
