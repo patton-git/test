@@ -386,4 +386,14 @@
           auto_compute_percentages: True
           failover_level: 1
       delegate_to: localhost    
-      
+
+  # - name: 10. Poweron Lab vm
+  #   community.vmware.vmware_guest:
+  #     hostname: "{{ vcenter_hostname }}"
+  #     username: "{{ vcenter_username }}"
+  #     password: "{{ vcenter_password }}"
+  #     validate_certs: no
+  #     name: "{{ item[0].id }}{{ item[1] }}"
+  #     state: "poweredon"
+  #   loop: "{{ LAB_SID | product(LAB_VMs) | list }}"
+  #   delegate_to: localhost      
