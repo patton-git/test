@@ -206,107 +206,66 @@
       delegate_to: localhost
 
 
-    - name: 11.Wait for complete rescan HBA
+    - name: 14.Wait for complete rescan HBA
       wait_for:
         timeout: 10
       delegate_to: localhost
 
-    - name: Mount VMFS datastores to ESXi
-      community.vmware.vmware_host_datastore:
+
+
+    - name: 15.Disable ESXi Maintenance Mode On A Host
+      vmware.vmware.esxi_maintenance_mode:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        esxi_hostname: '{{ item.name }}'
-        datastore_name: '{{ iSCSI-0 }}'
-        datastore_type: "vmfs"
-        vmfs_device_name: 'naa.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-        vmfs_version: 6
-        state: present
+        name: "{{ item.name }}"
+        enable_maintenance_mode: false
       loop: "{{ cluster_hosts }}"
       delegate_to: localhost
 
 
-    - name: 12.Mount iSCSI-01 datastore
+    - name: 16.Create iSCSI-0 Datastore
       community.vmware.vmware_host_datastore:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        validate_certs: no
-        datastore_name: 'iSCSI-Horizon'
-        datastore_type: 'vmfs'
-        vmfs_device_name: 'naa.60003ff44dc75adc881b96b330bc1bdc'
+        esxi_hostname: "esx-01.vclass.local"
+        datastore_name: "iSCSI-0"
+        datastore_type: "vmfs"
+        vmfs_device_name: 'naa.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
         vmfs_version: 6
-        esxi_hostname: '{{ item }}'
         state: present
-      loop:
-        - "sa-esxi-01.vclass.local"
-        - "sa-esxi-02.vclass.local"
-        - "sa-esxi-03.vclass.local"
+      delegate_to: localhost
+
+    - name: 17.Create iSCSI-1 Datastore
+      community.vmware.vmware_host_datastore:
+        hostname: '{{ vcenter_hostname }}'
+        username: '{{ vcenter_username }}'
+        password: '{{ vcenter_password }}'
+        esxi_hostname: "esx-01.vclass.local"
+        datastore_name: "iSCSI-1"
+        datastore_type: "vmfs"
+        vmfs_device_name: 'naa.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+        vmfs_version: 6
+        state: present
       delegate_to: localhost
 
 
-    - name: 13.Create Subscribed Content Library
+    - name: 18.Create Subscribed Content Library
       community.vmware.vmware_content_library_manager:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
-        validate_certs: no
-        library_name: from-vcsa.edu.git
-        library_description: 'Subscribed Library from vcsa.edu.git'
-        library_type: subscribed
-        datastore_name: iSCSI-Horizon
-        subscription_url: 'https://vcsa.edu.git:443/cls/vcsp/lib/8abf3e66-df94-4abd-9b6f-9ae81b54110b/lib.json'
-        ssl_thumbprint: 'F2:4B:22:E2:AF:F0:69:70:44:76:9C:70:49:5C:C8:1C:26:26:3D:D8'
+        library_name: DevOps
+        library_type: local
+        datastore_name: iSCSI-0
         update_on_demand: true
         state: present
       delegate_to: localhost
 
 
-    - name: 14.Create dvSwitch
-      community.vmware.vmware_dvswitch:
-        hostname: '{{ vcenter_hostname }}'
-        username: '{{ vcenter_username }}'
-        password: '{{ vcenter_password }}'
-        validate_certs: no
-        datacenter: '{{ datacenter_name }}'
-        switch: DSwitch
-        version: 7.0.3
-        uplink_quantity: 2
-        state: present
-      delegate_to: localhost
 
-    - name: 15.Add Host to dVS
-      community.vmware.vmware_dvs_host:
-        hostname: '{{ vcenter_hostname }}'
-        username: '{{ vcenter_username }}'
-        password: '{{ vcenter_password }}'
-        validate_certs: no        
-        esxi_hostname: '{{ item }}'
-        switch_name: DSwitch
-        vmnics:
-          - vmnic2
-          - vmnic3
-        state: present
-      loop:
-        - "sa-esxi-01.vclass.local"
-        - "sa-esxi-02.vclass.local"
-        - "sa-esxi-03.vclass.local"
-      delegate_to: localhost
-
-    - name: 16.Create vlan portgroup - Mgmt - 10
-      community.vmware.vmware_dvs_portgroup:
-        hostname: '{{ vcenter_hostname }}'
-        username: '{{ vcenter_username }}'
-        password: '{{ vcenter_password }}'
-        validate_certs: no        
-        portgroup_name: DPG-Mgmt
-        switch_name: DSwitch
-        vlan_id: 10
-        port_binding: static
-        state: present
-      delegate_to: localhost
-
-    - name: 17.Create vlan portgroup - vMotion - 12
+    - name: 19.Create vlan portgroup - vMotion - 12
       community.vmware.vmware_dvs_portgroup:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
@@ -318,20 +277,6 @@
         port_binding: static
         state: present
       delegate_to: localhost
-
-    - name: 18.Create vlan portgroup - Production - 13
-      community.vmware.vmware_dvs_portgroup:
-        hostname: '{{ vcenter_hostname }}'
-        username: '{{ vcenter_username }}'
-        password: '{{ vcenter_password }}'
-        validate_certs: no        
-        portgroup_name: DPG-Prod-Internal
-        switch_name: DSwitch
-        vlan_id: 13
-        port_binding: static
-        state: present
-      delegate_to: localhost
-
 
     - name: 19.Add vMotion vmkernel port
       community.vmware.vmware_vmkernel:
@@ -370,6 +315,21 @@
         - "sa-esxi-02.vclass.local"
         - "sa-esxi-03.vclass.local"
       delegate_to: localhost    
+
+
+    - name: 20.Create vlan portgroup - Production - 13
+      community.vmware.vmware_dvs_portgroup:
+        hostname: '{{ vcenter_hostname }}'
+        username: '{{ vcenter_username }}'
+        password: '{{ vcenter_password }}'
+        validate_certs: no        
+        portgroup_name: DPG-Prod-Internal
+        switch_name: DSwitch
+        vlan_id: 13
+        port_binding: static
+        state: present
+      delegate_to: localhost
+
 
     - name: 21.Enable HA with admission control FTT=1
       community.vmware.vmware_cluster_ha:
