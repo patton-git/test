@@ -33,7 +33,7 @@
       delegate_to: localhost
 
     - name: 02.Create Cluster
-      community.vmware.vmware_cluster:
+      vmware.vmware.cluster:
         hostname: '{{ vcenter_hostname }}'
         username: '{{ vcenter_username }}'
         password: '{{ vcenter_password }}'
