@@ -13,7 +13,7 @@
       - { name: esx-01.vclass.local, ip_iscsi_1: 10.10.11.11, ip_iscsi_2: 10.10.11.21, ip_vmotion: 10.10.12.11 }
       - { name: esx-02.vclass.local, ip_iscsi_1: 10.10.11.12, ip_iscsi_2: 10.10.11.22, ip_vmotion: 10.10.12.12 }
       - { name: esx-03.vclass.local, ip_iscsi_1: 10.10.11.13, ip_iscsi_2: 10.10.11.23, ip_vmotion: 10.10.12.13 }
-      # - { name: esx-04.vclass.local, ip_iscsi_1: 10.10.11.14, ip_iscsi_2: 10.10.11.24, ip_vmotion: 10.10.12.14 }
+      - { name: esx-04.vclass.local, ip_iscsi_1: 10.10.11.14, ip_iscsi_2: 10.10.11.24, ip_vmotion: 10.10.12.14 }
     iscsi_target_ip: "10.10.10.1"  
     
   vars_prompt:
